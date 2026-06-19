@@ -1,0 +1,21 @@
+import { Router } from 'express';
+import {
+  register,
+  verifyRegistration,
+  login,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
+} from '../controllers/auth.controller.js';
+import { authLimiter, otpLimiter } from '../middleware/rateLimit.middleware.js';
+
+const router = Router();
+
+router.post('/register', otpLimiter, register);
+router.post('/register/verify', authLimiter, verifyRegistration);
+router.post('/login', authLimiter, login);
+router.post('/forgot-password', otpLimiter, forgotPassword);
+router.post('/reset-password/verify', authLimiter, verifyResetOtp);
+router.post('/reset-password', authLimiter, resetPassword);
+
+export default router;

@@ -1,0 +1,19 @@
+# Beach Travel Booking Platform - User Stories
+
+| Req No. | As a | I should be able to | Notes |
+| :--- | :--- | :--- | :--- |
+| 1 | Visitor | View a homepage catalog of all available beach travels | Includes titles, descriptions, and images. |
+| 2 | Visitor | View the travels sorted by popularity, with top choices badged as "Trending" | Popularity is dynamically calculated based on the number of confirmed bookings. |
+| 3 | Visitor | Select a specific travel to view more details | |
+| 4 | Normal User | Register and log in using an OTP sent via SMS or WhatsApp | Frictionless entry; no passwords required. |
+| 5 | Normal User | Edit my profile to link alternative contact methods | Fields for Telegram, Instagram, Snapchat, and Messenger usernames/links. |
+| 6 | Normal User | Add or remove specific travels to my favorites list | Toggle a heart icon on the travel cards. |
+| 7 | Normal User | View a dedicated list of my favorite travels | |
+| 8 | Normal User | Submit a booking request directly through the website | Captures the desired date and saves to the database as "New". |
+| 9 | Normal User | View a dashboard of my past and current booking requests | |
+| 10 | Admin | Securely log into a hidden admin dashboard | |
+| 11 | Admin | Add, edit, or delete beach travels in the public catalog | Keeps the inventory updated. |
+| 12 | Admin | View a centralized queue of all incoming booking requests | Triggers an internal notification (UI badge or alert) for new leads. |
+| 13 | Admin | View a requesting user's profile and linked contact methods | Allows the admin to see if the user prefers WhatsApp, Telegram, etc. |
+| 14 | Admin | Click a generated link to contact the user via their linked platforms | Opens WhatsApp, Telegram, or Messenger directly to initiate the conversation. |
+| 15 | Admin | Change the status of a booking request | Statuses: New -> Contacted -> Confirmed -> Cancelled. Changing to "Confirmed" automatically increments the travel's popularity score. |
