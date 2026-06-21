@@ -11,7 +11,6 @@ import { formatPrice } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/booking/BookingModal';
 import TrendingBadge from '@/components/activity/TrendingBadge';
-import ReactPlayer from 'react-player';
 
 export default function ActivityDetailPage() {
   const params = useParams();
@@ -84,15 +83,25 @@ export default function ActivityDetailPage() {
             {allMedia[selectedMedia] ? (
               allMedia[selectedMedia].type === 'video' ? (
                 <div className="w-full h-full flex items-center justify-center">
-                  {isMounted && (
-                    <ReactPlayer
-                      // @ts-expect-error - ReactPlayer typing mismatch with Next.js HTMLVideoElement inference
-                      url={allMedia[selectedMedia].url}
+                  {getYoutubeId(allMedia[selectedMedia].url) ? (
+                    <iframe
                       width="100%"
                       height="100%"
-                      controls={true}
-                      playing={true}
-                      muted={true}
+                      src={`https://www.youtube.com/embed/${getYoutubeId(allMedia[selectedMedia].url)}?autoplay=1&mute=1`}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      style={{ aspectRatio: '4/3' }}
+                      className="w-full h-full object-cover"
+                    ></iframe>
+                  ) : (
+                    <video 
+                      src={allMedia[selectedMedia].url} 
+                      controls 
+                      autoPlay 
+                      muted 
+                      className="w-full h-full object-contain" 
                       style={{ aspectRatio: '4/3' }}
                     />
                   )}
