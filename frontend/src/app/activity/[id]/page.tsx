@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Clock, Tag, Waves, Heart } from 'lucide-react';
 import Link from 'next/link';
@@ -11,9 +11,7 @@ import { formatPrice } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/booking/BookingModal';
 import TrendingBadge from '@/components/activity/TrendingBadge';
-import dynamic from 'next/dynamic';
-
-const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
+import ReactPlayer from 'react-player';
 
 export default function ActivityDetailPage() {
   const params = useParams();
@@ -23,6 +21,11 @@ export default function ActivityDetailPage() {
   const { isFavorited, toggleFavorite } = useFavorites();
   const [showBooking, setShowBooking] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -81,15 +84,18 @@ export default function ActivityDetailPage() {
             {allMedia[selectedMedia] ? (
               allMedia[selectedMedia].type === 'video' ? (
                 <div className="w-full h-full flex items-center justify-center">
-                  <ReactPlayer
-                    url={allMedia[selectedMedia].url}
-                    width="100%"
-                    height="100%"
-                    controls={true}
-                    playing={true}
-                    muted={true}
-                    style={{ aspectRatio: '4/3' }}
-                  />
+                  {isMounted && (
+                    <ReactPlayer
+                      // @ts-expect-error - ReactPlayer typing mismatch with Next.js HTMLVideoElement inference
+                      url={allMedia[selectedMedia].url}
+                      width="100%"
+                      height="100%"
+                      controls={true}
+                      playing={true}
+                      muted={true}
+                      style={{ aspectRatio: '4/3' }}
+                    />
+                  )}
                 </div>
               ) : (
                 <img
