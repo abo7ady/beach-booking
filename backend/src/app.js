@@ -38,6 +38,16 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ── Core Middleware ──────────────────────────────────────────
+// Ensure DB is connected for serverless environments (Vercel)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 // CORS must come before helmet so preflight responses get proper headers
 const allowedOrigins = [
   'http://localhost:3000',
@@ -83,6 +93,8 @@ const startServer = async () => {
   });
 };
 
-startServer();
+if (process.env.NODE_ENV !== 'production') {
+  startServer();
+}
 
 export default app;
