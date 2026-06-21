@@ -23,6 +23,10 @@ export interface Activity {
   durationMinutes: number;
   price: number;
   maxPeople: number;
+  minCapacity?: number;
+  maxCapacity?: number;
+  maxWeightLimit?: number;
+  mediaAlbum?: any[];
   tags: string[];
   popularityScore: number;
   isTrending: boolean;

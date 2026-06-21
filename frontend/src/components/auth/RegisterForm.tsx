@@ -145,7 +145,7 @@ export default function RegisterForm() {
         </label>
         <PhoneInput
           value={whatsappNumber}
-          onChange={(v) => setWhatsappNumber(v)}
+          onChange={(v: any) => setWhatsappNumber(v || '')}
           placeholder="Enter WhatsApp number"
           defaultCountry="EG"
         />
