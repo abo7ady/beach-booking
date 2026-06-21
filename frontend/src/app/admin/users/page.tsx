@@ -103,13 +103,13 @@ export default function AdminUsersPage() {
             <tbody className="divide-y divide-border">
               {users.map((u) => {
                 const isSelf = currentUser?._id === u._id || u.email === 'admin@beachbooking.com';
-                
+
                 return (
                   <tr key={u._id} className="hover:bg-accent/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-foreground">
                       <div className="flex items-center gap-3">
                         <Avatar className="w-8 h-8">
-                          <AvatarImage src={u.profilePicture} alt={u.name} />
+                          <AvatarImage src={u.profilePicture || ''} alt={u.name} />
                           <AvatarFallback className="text-[10px]">{getInitials(u.name || '')}</AvatarFallback>
                         </Avatar>
                         <span>{u.name || <span className="text-muted-foreground italic">No Name</span>}</span>

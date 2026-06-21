@@ -10,14 +10,6 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { User, Send, Camera, Ghost, MessageSquare, Phone, Save } from 'lucide-react';
 import { PhoneInput } from '@/components/ui/phone-input';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-
-const getInitials = (name: string) => {
-  if (!name) return 'U';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
-};
 
 type Tab = 'bookings' | 'favorites' | 'settings';
 
@@ -115,7 +107,7 @@ export default function ProfilePage() {
 
       const res = await api.put('/profile', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': undefined,
         },
       });
       updateUser(res.data.user);
@@ -142,10 +134,13 @@ export default function ProfilePage() {
     <div className="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
       {/* Profile Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Avatar className="w-14 h-14">
-          <AvatarImage src={user?.profilePicture} alt={user?.name} />
-          <AvatarFallback className="text-base">{getInitials(user?.name || '')}</AvatarFallback>
-        </Avatar>
+        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+          {user?.profilePicture ? (
+            <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" />
+          ) : (
+            <User className="w-7 h-7 text-primary" />
+          )}
+        </div>
         <div>
           <h1 className="text-xl font-bold text-foreground">{user?.name || 'My Profile'}</h1>
           <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -158,11 +153,10 @@ export default function ProfilePage() {
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`px-4 pb-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === key
+            className={`px-4 pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === key
                 ? 'text-foreground border-primary'
                 : 'text-muted-foreground border-transparent hover:text-foreground'
-            }`}
+              }`}
           >
             {label}
           </button>
@@ -194,19 +188,18 @@ export default function ProfilePage() {
         <div className="space-y-6">
           {/* Profile Picture Upload Section */}
           <div className="flex items-center gap-4 border-b border-border pb-6">
-            <div 
+            <div
               onClick={() => document.getElementById('avatar-input')?.click()}
-              className="relative group w-20 h-20 rounded-full shrink-0 cursor-pointer"
+              className="relative group w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border shrink-0 cursor-pointer"
             >
-              <Avatar className="w-20 h-20">
-                {previewUrl ? (
-                  <AvatarImage src={previewUrl} alt="Preview" />
-                ) : (
-                  <AvatarImage src={user?.profilePicture} alt={user?.name} />
-                )}
-                <AvatarFallback className="text-2xl">{getInitials(user?.name || '')}</AvatarFallback>
-              </Avatar>
-              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {previewUrl ? (
+                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+              ) : user?.profilePicture ? (
+                <img src={user.profilePicture} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-primary" />
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>

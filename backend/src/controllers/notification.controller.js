@@ -1,10 +1,11 @@
+import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 
 // Helper: build the query filter based on user role
 const buildQuery = (user) => {
   return user.role === 'admin'
-    ? { $or: [{ recipient: 'admin' }, { recipient: user.id }] }
-    : { recipient: user.id };
+    ? { $or: [{ recipient: 'admin' }, { recipient: user.id }, { user: user.id }] }
+    : { $or: [{ recipient: user.id }, { user: user.id }] };
 };
 
 // ── Get recent notifications (popover bell) ──────────────────
@@ -51,12 +52,14 @@ export const getAllNotifications = async (req, res, next) => {
 // ── Mark single notification as read ─────────────────────────
 export const markAsRead = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Notification ID' });
     const notification = await Notification.findById(req.params.id);
     if (!notification) return res.status(404).json({ error: 'Notification not found' });
 
     if (
       notification.recipient !== 'admin' &&
-      notification.recipient.toString() !== req.user.id &&
+      notification.recipient?.toString() !== req.user.id &&
+      notification.user?.toString() !== req.user.id &&
       req.user.role !== 'admin'
     ) {
       return res.status(403).json({ error: 'Not authorized' });
@@ -73,12 +76,14 @@ export const markAsRead = async (req, res, next) => {
 // ── Toggle read/unread for a single notification ─────────────
 export const toggleReadStatus = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Notification ID' });
     const notification = await Notification.findById(req.params.id);
     if (!notification) return res.status(404).json({ error: 'Notification not found' });
 
     if (
       notification.recipient !== 'admin' &&
-      notification.recipient.toString() !== req.user.id &&
+      notification.recipient?.toString() !== req.user.id &&
+      notification.user?.toString() !== req.user.id &&
       req.user.role !== 'admin'
     ) {
       return res.status(403).json({ error: 'Not authorized' });

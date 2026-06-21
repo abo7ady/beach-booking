@@ -36,6 +36,8 @@ export interface Booking {
   user: User | string;
   activity: Activity | string;
   desiredDate: string;
+  numberOfPersons: number;
+  totalPrice: number;
   status: 'New' | 'Contacted' | 'Confirmed' | 'Cancelled';
   adminNote: string;
   statusHistory: StatusHistoryEntry[];

@@ -2,25 +2,34 @@ import Booking from '../models/Booking.js';
 import Activity from '../models/Activity.js';
 import Notification from '../models/Notification.js';
 import { recomputeTrending } from '../utils/recomputeTrending.js';
+import { sendBookingStatusEmail } from '../utils/email.js';
 
 // ── Create Booking (User) ────────────────────────────────────
 export const createBooking = async (req, res, next) => {
   try {
-    const { activityId, desiredDate } = req.body;
+    const { activityId, desiredDate, numberOfPersons = 1 } = req.body;
 
     // Validate activity exists and is active
     const activity = await Activity.findById(activityId);
     if (!activity || !activity.isActive)
       return res.status(404).json({ error: 'Activity not found' });
 
+    // Validate capacity
+    if (numberOfPersons > activity.maxPeople)
+      return res.status(400).json({ error: 'Not enough capacity available.' });
+
     // Validate date is in the future
     if (new Date(desiredDate) <= new Date())
       return res.status(400).json({ error: 'Please select a future date' });
+
+    const totalPrice = activity.price * numberOfPersons;
 
     const booking = await Booking.create({
       user: req.user.id,
       activity: activityId,
       desiredDate,
+      numberOfPersons,
+      totalPrice,
       statusHistory: [
         {
           status: 'New',
@@ -86,7 +95,7 @@ export const getAllBookings = async (req, res, next) => {
 
     const [bookings, total] = await Promise.all([
       Booking.find(filter)
-        .populate('user', 'name email whatsappNumber telegram instagram snapchat messenger')
+        .populate('user', 'name email profilePicture whatsappNumber telegram instagram snapchat messenger')
         .populate('activity', 'title images price')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -111,6 +120,7 @@ export const getAllBookings = async (req, res, next) => {
 // ── Update Booking Status (Admin) ────────────────────────────
 export const updateBookingStatus = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Booking ID' });
     const { status, adminNote } = req.body;
     const booking = await Booking.findById(req.params.id);
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
@@ -141,18 +151,25 @@ export const updateBookingStatus = async (req, res, next) => {
     }
 
     const populated = await booking.populate([
-      { path: 'user', select: 'name email whatsappNumber telegram instagram snapchat messenger' },
+      { path: 'user', select: 'name email profilePicture whatsappNumber telegram instagram snapchat messenger' },
       { path: 'activity', select: 'title images price' },
     ]);
 
     if (status !== prevStatus) {
       await Notification.create({
         recipient: booking.user,
+        user: booking.user,
+        booking: booking._id,
         title: 'Booking Status Updated',
         message: `Your booking for ${populated.activity.title} is now ${status}.`,
         type: 'booking_status',
         targetUrl: '/profile',
       });
+
+      // Send email notification
+      if (populated.user && populated.user.email) {
+        await sendBookingStatusEmail(populated.user.email, populated.activity.title, status);
+      }
     }
 
     return res.json({ booking: populated });

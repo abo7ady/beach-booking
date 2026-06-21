@@ -32,7 +32,7 @@ export default function Navbar() {
             <Waves className="w-5 h-5 text-white" />
           </div>
           <span className="text-lg font-bold text-foreground tracking-tight">
-            Beach<span className="text-primary">Booking</span>
+            Top<span className="text-primary">Guide</span>
           </span>
         </Link>
 

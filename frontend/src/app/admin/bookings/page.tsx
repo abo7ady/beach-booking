@@ -6,6 +6,7 @@ import { Booking, User as UserType, Activity } from '@/types';
 import { formatDate } from '@/lib/utils';
 import StatusDropdown from '@/components/admin/StatusDropdown';
 import ContactGrid from '@/components/admin/ContactGrid';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 export default function AdminBookingsPage() {
   const [page, setPage] = useState(1);
@@ -55,11 +56,30 @@ export default function AdminBookingsPage() {
                   return (
                     <tr key={booking._id} className="border-b border-border last:border-0 hover:bg-accent/50 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-foreground">{user?.name || 'User'}</p>
-                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={user?.profilePicture || ''} alt={user?.name || 'User'} />
+                            <AvatarFallback className="text-[10px]">
+                              {user?.name ? (
+                                (() => {
+                                  const parts = user.name.trim().split(/\s+/);
+                                  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+                                  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+                                })()
+                              ) : 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{user?.name || 'User'}</p>
+                            <p className="text-xs text-muted-foreground">{user?.email}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">
-                        {activity?.title || 'Activity'}
+                        <p>{activity?.title || 'Activity'}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {booking.numberOfPersons || 1} Person{(booking.numberOfPersons || 1) !== 1 && 's'} - Total: ${booking.totalPrice || (activity?.price ? activity.price * (booking.numberOfPersons || 1) : 0)}
+                        </p>
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {formatDate(booking.desiredDate)}

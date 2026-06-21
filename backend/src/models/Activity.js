@@ -7,7 +7,14 @@ const activitySchema = new mongoose.Schema(
     images: [{ type: String }], // Cloudinary secure URLs
     durationMinutes: { type: Number, default: 60 },
     price: { type: Number, required: true },
-    maxPeople: { type: Number, required: true },
+    minCapacity: { type: Number, required: true, default: 1, min: 1 },
+    maxCapacity: { type: Number, default: null },
+    maxWeightLimit: { type: Number, default: null },
+    mediaAlbum: [{
+      url: { type: String, required: true },
+      mediaType: { type: String, enum: ['image', 'video'], required: true },
+      publicId: { type: String, default: null }
+    }],
     tags: [{ type: String }], // e.g. ['ATV', 'Parachute']
 
     // ── Popularity system

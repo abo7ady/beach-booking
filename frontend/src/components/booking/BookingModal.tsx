@@ -15,6 +15,7 @@ interface BookingModalProps {
 export default function BookingModal({ activity, onClose, onSuccess }: BookingModalProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedDate, setSelectedDate] = useState('');
+  const [numberOfPersons, setNumberOfPersons] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,6 +30,7 @@ export default function BookingModal({ activity, onClose, onSuccess }: BookingMo
       await api.post('/bookings', {
         activityId: activity._id,
         desiredDate: selectedDate,
+        numberOfPersons,
       });
       onSuccess();
       onClose();
@@ -66,18 +68,48 @@ export default function BookingModal({ activity, onClose, onSuccess }: BookingMo
                 Choose your preferred date for <strong>{activity.title}</strong>
               </p>
 
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    min={minDate}
-                    className="w-full h-10 rounded-md border border-input bg-white pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  />
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1.5">Date</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      min={minDate}
+                      className="w-full h-10 rounded-md border border-input bg-white pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    />
+                  </div>
                 </div>
+
+                <div className="w-32">
+                  <label className="block text-sm font-medium mb-1.5">Persons</label>
+                  <div className="flex items-center h-10 border border-input rounded-md overflow-hidden bg-white">
+                    <button
+                      onClick={() => setNumberOfPersons(Math.max(1, numberOfPersons - 1))}
+                      className="px-3 h-full hover:bg-muted text-foreground transition-colors"
+                    >
+                      -
+                    </button>
+                    <div className="flex-1 text-center text-sm font-medium">
+                      {numberOfPersons}
+                    </div>
+                    <button
+                      onClick={() => setNumberOfPersons(numberOfPersons + 1)}
+                      className="px-3 h-full hover:bg-muted text-foreground transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-between items-center text-sm">
+                <span className="font-semibold">Total Price:</span>
+                <span className="text-lg font-bold text-primary">
+                  ${activity.price * numberOfPersons}
+                </span>
               </div>
 
               <button
@@ -95,7 +127,7 @@ export default function BookingModal({ activity, onClose, onSuccess }: BookingMo
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Change date
+                Change details
               </button>
 
               {/* Summary Card */}
@@ -108,10 +140,14 @@ export default function BookingModal({ activity, onClose, onSuccess }: BookingMo
                   <span className="text-muted-foreground">Date</span>
                   <span className="font-medium">{formatDate(selectedDate)}</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Persons</span>
+                  <span className="font-medium">{numberOfPersons}</span>
+                </div>
                 <div className="border-t border-border pt-3 flex justify-between text-sm">
-                  <span className="font-semibold">Price</span>
+                  <span className="font-semibold">Total Price</span>
                   <span className="font-semibold text-primary">
-                    {formatPrice(activity.price)}
+                    ${activity.price * numberOfPersons}
                   </span>
                 </div>
               </div>

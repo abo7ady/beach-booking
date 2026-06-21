@@ -31,10 +31,10 @@ export default function HomePage() {
       {/* Hero Section */}
       <div className="text-center mb-12 animate-fade-in">
         <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
-          Discover Beach <span className="text-primary">Adventures</span>
+          Discover TopGuide <span className="text-primary">Adventures</span>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-          Book unforgettable beach activities, water sports, and coastal experiences. 
+          Book unforgettable TopGuide activities, water sports, and coastal experiences. 
           Your next adventure starts here.
         </p>
       </div>
