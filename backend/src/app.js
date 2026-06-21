@@ -16,7 +16,23 @@ import profileRoutes from './routes/profile.routes.js';
 import userRoutes from './routes/user.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
+
+// ── Environment Variable Validation (Fail-Fast) ──────────────────
+const requiredEnvVars = ['JWT_SECRET', 'CLOUDINARY_API_KEY', 'EMAIL_USER'];
+console.log('\n--- Environment Configuration Check ---');
+requiredEnvVars.forEach((envVar) => {
+  if (!process.env[envVar]) {
+    console.error(`[BOOT ERROR] Missing required environment variable: ${envVar}`);
+    console.error('Please ensure this variable is set in your Railway dashboard.');
+    process.exit(1);
+  } else {
+    console.log(`[OK] ${envVar} is set.`);
+  }
+});
+console.log('---------------------------------------\n');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
