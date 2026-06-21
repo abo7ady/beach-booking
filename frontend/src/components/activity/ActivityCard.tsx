@@ -46,7 +46,7 @@ export default function ActivityCard({ activity, onBook }: ActivityCardProps) {
   return (
     <Link
       href={`/activity/${activity._id}`}
-      className="block rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden relative hover:shadow-md transition-shadow duration-300 group cursor-pointer animate-fade-in"
+      className="flex flex-col h-full rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden relative hover:shadow-md transition-shadow duration-300 group cursor-pointer animate-fade-in"
     >
       {/* Image */}
       <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted">
@@ -96,54 +96,70 @@ export default function ActivityCard({ activity, onBook }: ActivityCardProps) {
       </div>
 
       {/* Body */}
-      <div className="p-4 flex flex-col gap-2">
-        {activity?.tags && activity.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-1">
-            {activity.tags.map((tag, idx) => (
+      <div className="p-4 flex flex-col flex-1">
+        {/* Top Content: Tags, Title, Description */}
+        <div className="flex flex-col gap-2 flex-1">
+          {/* Tags Container with fixed min-height */}
+          <div className="flex flex-wrap gap-1 min-h-[24px]">
+            {activity?.tags && activity.tags.map((tag, idx) => (
               <span key={idx} className="text-[10px] uppercase tracking-wider bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded">
                 {tag}
               </span>
             ))}
           </div>
-        )}
-        <h3 className="font-semibold text-base leading-tight text-foreground">
-          {activity?.title || 'Unknown Activity'}
-        </h3>
-        <p className="text-muted-foreground text-sm line-clamp-2">
-          {activity?.description || 'No description available.'}
-        </p>
-        {activity?.maxWeightLimit && activity.maxWeightLimit > 0 && (
-          <div className="mb-1">
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/50">
-              ⚖️ Max Weight: {activity.maxWeightLimit} kg
-            </span>
+          
+          <h3 className="font-semibold text-base leading-tight text-foreground">
+            {activity?.title || 'Unknown Activity'}
+          </h3>
+          <p className="text-muted-foreground text-sm line-clamp-2">
+            {activity?.description || 'No description available.'}
+          </p>
+        </div>
+
+        {/* Bottom Content: Metadata, Pricing, Actions */}
+        <div className="mt-4 flex flex-col gap-3">
+          {/* Unified Metadata Section */}
+          <div className="flex flex-col gap-1.5 min-h-[52px] justify-center text-xs text-muted-foreground font-medium border-t border-border/50 pt-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {activity?.durationMinutes || 60} min
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="w-3.5 h-3.5" />
+                {activity?.maxCapacity != null 
+                  ? `Group: ${activity?.minCapacity || 1}-${activity.maxCapacity} persons` 
+                  : `Group: Min ${activity?.minCapacity || 1} persons`}
+              </span>
+            </div>
+            
+            {/* Weight Constraint Slot (Fixed height to prevent jumping) */}
+            <div className="h-[22px] flex items-center">
+              {activity?.maxWeightLimit && activity.maxWeightLimit > 0 && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/50">
+                  ⚖️ Max Weight: {activity.maxWeightLimit} kg
+                </span>
+              )}
+            </div>
           </div>
-        )}
-        <div className="flex flex-wrap items-center justify-between pt-1 gap-y-2">
-          <span className="text-primary text-sm">
-            $<span className="font-bold text-base">{activity?.price || 0}</span> / person
-          </span>
-          <div className="flex items-center gap-3 text-muted-foreground text-xs font-medium">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {activity?.durationMinutes || 60} min
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" />
-              {activity?.maxCapacity != null 
-                ? `Group: ${activity?.minCapacity || 1} - ${activity.maxCapacity} persons` 
-                : `Group: Min ${activity?.minCapacity || 1} persons`}
-            </span>
+
+          {/* Pricing and Action Alignment */}
+          <div className="flex flex-col gap-2 mt-auto">
+            <div className="flex items-center justify-between">
+              <span className="text-primary text-sm">
+                $<span className="font-bold text-base">{activity?.price || 0}</span> / person
+              </span>
+            </div>
+            {!isAdmin && (
+              <button
+                onClick={handleBook}
+                className="w-full h-9 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary-hover transition-colors btn-press"
+              >
+                Book Now
+              </button>
+            )}
           </div>
         </div>
-        {!isAdmin && (
-          <button
-            onClick={handleBook}
-            className="w-full mt-1 h-9 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary-hover transition-colors btn-press"
-          >
-            Book Now
-          </button>
-        )}
       </div>
     </Link>
   );
