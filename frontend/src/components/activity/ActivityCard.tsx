@@ -97,24 +97,42 @@ export default function ActivityCard({ activity, onBook }: ActivityCardProps) {
 
       {/* Body */}
       <div className="p-4 flex flex-col gap-2">
+        {activity?.tags && activity.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-1">
+            {activity.tags.map((tag, idx) => (
+              <span key={idx} className="text-[10px] uppercase tracking-wider bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
         <h3 className="font-semibold text-base leading-tight text-foreground">
-          {activity.title}
+          {activity?.title || 'Unknown Activity'}
         </h3>
         <p className="text-muted-foreground text-sm line-clamp-2">
-          {activity.description}
+          {activity?.description || 'No description available.'}
         </p>
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-primary font-bold text-base">
-            {formatPrice(activity.price || 0)}
+        {activity?.maxWeightLimit && activity.maxWeightLimit > 0 && (
+          <div className="mb-1">
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/50">
+              ⚖️ Max Weight: {activity.maxWeightLimit} kg
+            </span>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center justify-between pt-1 gap-y-2">
+          <span className="text-primary text-sm">
+            $<span className="font-bold text-base">{activity?.price || 0}</span> / person
           </span>
           <div className="flex items-center gap-3 text-muted-foreground text-xs font-medium">
             <span className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
-              {activity.durationMinutes} min
+              {activity?.durationMinutes || 60} min
             </span>
             <span className="flex items-center gap-1">
               <Users className="w-3.5 h-3.5" />
-              {activity.maxPeople || 0} max
+              {activity?.maxCapacity != null 
+                ? `Group: ${activity?.minCapacity || 1} - ${activity.maxCapacity} persons` 
+                : `Group: Min ${activity?.minCapacity || 1} persons`}
             </span>
           </div>
         </div>

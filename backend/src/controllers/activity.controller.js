@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Activity from '../models/Activity.js';
 import Booking from '../models/Booking.js';
 import Favorite from '../models/Favorite.js';
@@ -53,6 +54,7 @@ export const listActivities = async (req, res, next) => {
 // ── Get Single Activity ──────────────────────────────────────
 export const getActivity = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Activity ID' });
     const activity = await Activity.findById(req.params.id);
     if (!activity || !activity.isActive)
       return res.status(404).json({ error: 'Activity not found' });
@@ -65,19 +67,53 @@ export const getActivity = async (req, res, next) => {
 // ── Create Activity (Admin) ─────────────────────────────────
 export const createActivity = async (req, res, next) => {
   try {
-    const { title, description, durationMinutes, tags, price, maxPeople } = req.body;
-    
+    const { title, description, durationMinutes, tags, price, minCapacity, maxCapacity, maxWeightLimit, mediaAlbum } = req.body;
+
     const newActivityData = {
       title,
       description,
       durationMinutes: durationMinutes ? Number(durationMinutes) : undefined,
       price: price ? Number(price) : undefined,
-      maxPeople: maxPeople ? Number(maxPeople) : undefined,
+      minCapacity: minCapacity ? Number(minCapacity) : 1,
+      maxCapacity: (maxCapacity && maxCapacity !== '') ? Number(maxCapacity) : null,
+      maxWeightLimit: (maxWeightLimit && maxWeightLimit !== '') ? Number(maxWeightLimit) : null,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim())) : [],
     };
 
-    if (req.file && req.file.path) {
-      newActivityData.images = [req.file.path];
+    if (newActivityData.maxCapacity !== null && newActivityData.maxCapacity < newActivityData.minCapacity) {
+      return res.status(400).json({ error: 'Max Capacity must be greater than or equal to Min Capacity' });
+    }
+
+    if (newActivityData.tags.length > 20) {
+      return res.status(400).json({ error: 'Maximum 20 tags allowed' });
+    }
+
+    if (mediaAlbum) {
+      if (typeof mediaAlbum === 'string') {
+        try {
+          newActivityData.mediaAlbum = JSON.parse(mediaAlbum);
+        } catch (e) {}
+      } else if (Array.isArray(mediaAlbum)) {
+        newActivityData.mediaAlbum = mediaAlbum;
+      }
+      
+      if (newActivityData.mediaAlbum && newActivityData.mediaAlbum.length > 50) {
+        return res.status(400).json({ error: 'Maximum 50 media items allowed' });
+      }
+    }
+
+    if (req.files && req.files.image && req.files.image[0]) {
+      newActivityData.images = [req.files.image[0].path];
+    }
+
+    if (req.files && req.files.mediaFiles) {
+      if (!newActivityData.mediaAlbum) newActivityData.mediaAlbum = [];
+      const newMedia = req.files.mediaFiles.map(file => ({
+        url: file.path,
+        mediaType: 'image',
+        publicId: file.filename
+      }));
+      newActivityData.mediaAlbum.push(...newMedia);
     }
 
     const activity = await Activity.create(newActivityData);
@@ -90,6 +126,7 @@ export const createActivity = async (req, res, next) => {
 // ── Update Activity (Admin — Full) ──────────────────────────
 export const updateActivity = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Activity ID' });
     const updates = { ...req.body };
     if (updates.tags && typeof updates.tags === 'string') {
       updates.tags = updates.tags.split(',').map((t) => t.trim());
@@ -100,13 +137,50 @@ export const updateActivity = async (req, res, next) => {
     if (updates.price !== undefined) {
       updates.price = Number(updates.price);
     }
-    if (updates.maxPeople !== undefined) {
-      updates.maxPeople = Number(updates.maxPeople);
+    if (updates.minCapacity !== undefined) {
+      updates.minCapacity = Number(updates.minCapacity);
+    }
+    if (updates.maxCapacity !== undefined) {
+      updates.maxCapacity = (updates.maxCapacity && updates.maxCapacity !== '') ? Number(updates.maxCapacity) : null;
+    }
+    if (updates.maxWeightLimit !== undefined) {
+      updates.maxWeightLimit = (updates.maxWeightLimit && updates.maxWeightLimit !== '') ? Number(updates.maxWeightLimit) : null;
     }
 
-    if (req.file && req.file.path) {
-      // For now, overwrite the images array with the new image
-      updates.images = [req.file.path];
+    if (updates.mediaAlbum !== undefined && typeof updates.mediaAlbum === 'string') {
+        try {
+          updates.mediaAlbum = JSON.parse(updates.mediaAlbum);
+        } catch (e) {}
+    }
+
+    if (updates.tags && updates.tags.length > 20) {
+      return res.status(400).json({ error: 'Maximum 20 tags allowed' });
+    }
+    if (updates.mediaAlbum && updates.mediaAlbum.length > 50) {
+      return res.status(400).json({ error: 'Maximum 50 media items allowed' });
+    }
+
+    const currentActivity = await Activity.findById(req.params.id);
+    if (!currentActivity) return res.status(404).json({ error: 'Activity not found' });
+    
+    const finalMin = updates.minCapacity !== undefined ? updates.minCapacity : currentActivity.minCapacity;
+    const finalMax = updates.maxCapacity !== undefined ? updates.maxCapacity : currentActivity.maxCapacity;
+    if (finalMax !== null && finalMax < finalMin) {
+      return res.status(400).json({ error: 'Max Capacity must be greater than or equal to Min Capacity' });
+    }
+
+    if (req.files && req.files.image && req.files.image[0]) {
+      updates.images = [req.files.image[0].path];
+    }
+
+    if (req.files && req.files.mediaFiles) {
+      if (!updates.mediaAlbum) updates.mediaAlbum = [...(currentActivity.mediaAlbum || [])];
+      const newMedia = req.files.mediaFiles.map(file => ({
+        url: file.path,
+        mediaType: 'image',
+        publicId: file.filename
+      }));
+      updates.mediaAlbum.push(...newMedia);
     }
 
     const activity = await Activity.findByIdAndUpdate(
@@ -114,8 +188,6 @@ export const updateActivity = async (req, res, next) => {
       updates,
       { new: true, runValidators: true }
     );
-    if (!activity)
-      return res.status(404).json({ error: 'Activity not found' });
     return res.json({ activity });
   } catch (err) {
     next(err);
@@ -125,6 +197,7 @@ export const updateActivity = async (req, res, next) => {
 // ── Partial Update Activity (Admin) ──────────────────────────
 export const patchActivity = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Activity ID' });
     const activity = await Activity.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
@@ -141,6 +214,7 @@ export const patchActivity = async (req, res, next) => {
 // ── Soft-Delete Activity (Admin) ─────────────────────────────
 export const deleteActivity = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Activity ID' });
     const activity = await Activity.findByIdAndUpdate(
       req.params.id,
       { isActive: false },
@@ -157,14 +231,15 @@ export const deleteActivity = async (req, res, next) => {
 // ── Hard-Delete Activity (Admin) ─────────────────────────────
 export const hardDeleteActivity = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ error: 'Invalid Activity ID' });
     const activity = await Activity.findByIdAndDelete(req.params.id);
     if (!activity)
       return res.status(404).json({ error: 'Activity not found' });
-    
+
     // Clean up related data
     await Booking.deleteMany({ activity: req.params.id });
     await Favorite.deleteMany({ activity: req.params.id });
-    
+
     return res.json({ message: 'Activity permanently deleted' });
   } catch (err) {
     next(err);

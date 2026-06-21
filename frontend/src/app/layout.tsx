@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: 'BeachBooking — Discover Beach Activities',
-  description: 'Book amazing beach activities, water sports, and coastal adventures. Explore trending experiences curated just for you.',
+  title: 'TopGuide | Hurghada Sea Activities & Excursions',
+  description: 'Book amazing TopGuide activities, water sports, and coastal adventures. Explore trending experiences curated just for you.',
 };
 
 export default function RootLayout({

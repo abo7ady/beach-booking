@@ -56,7 +56,7 @@ app.use(errorHandler);
 const startServer = async () => {
   await connectDB();
   app.listen(PORT, () => {
-    console.log(`🏖️  Beach Booking API running on port ${PORT}`);
+    console.log(`[TopGuide API Server Running] on port ${PORT}`);
     console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 };

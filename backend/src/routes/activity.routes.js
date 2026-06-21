@@ -19,9 +19,14 @@ const router = Router();
 router.get('/', listActivities);
 router.get('/:id', getActivity);
 
+const activityUpload = upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'mediaFiles', maxCount: 20 }
+]);
+
 // Admin routes
-router.post('/', protect, adminOnly, upload.single('image'), createActivity);
-router.put('/:id', protect, adminOnly, upload.single('image'), updateActivity);
+router.post('/', protect, adminOnly, activityUpload, createActivity);
+router.put('/:id', protect, adminOnly, activityUpload, updateActivity);
 router.patch('/:id', protect, adminOnly, patchActivity);
 router.delete('/:id', protect, adminOnly, deleteActivity);
 router.delete('/:id/hard', protect, adminOnly, hardDeleteActivity);

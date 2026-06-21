@@ -3,43 +3,23 @@
 import { useAuthStore } from '@/store/authStore';
 import { useCallback, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
 
 export const useAuth = () => {
-  const { user, token, openAuthModal, logout: storeLogout, setAuth, updateUser } = useAuthStore();
+  const { user, token, openAuthModal, logout: storeLogout, setAuth } = useAuthStore();
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    const syncProfile = async () => {
-      // Wait for Zustand to hydrate from localStorage
-      if (!useAuthStore.persist.hasHydrated()) {
-        await new Promise<void>((resolve) => {
-          const unsub = useAuthStore.persist.onFinishHydration(() => {
-            unsub();
-            resolve();
-          });
-        });
-      }
-
-      // After hydration, if we have a token, re-fetch the profile to stay in sync
-      const currentToken = useAuthStore.getState().token;
-      if (currentToken) {
-        try {
-          const res = await api.get('/profile');
-          if (res.data.user) {
-            updateUser(res.data.user);
-          }
-        } catch {
-          // Token might be expired/invalid — don't crash, let normal auth flow handle it
-        }
-      }
-
+    // If store is already hydrated, set checking to false
+    if (useAuthStore.persist.hasHydrated()) {
       setIsCheckingAuth(false);
-    };
-
-    syncProfile();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    } else {
+      const unsub = useAuthStore.persist.onFinishHydration(() => {
+        setIsCheckingAuth(false);
+      });
+      return () => unsub();
+    }
+  }, []);
 
   const isAuthenticated = !!token && !!user;
   const isAdmin = user?.role === 'admin';

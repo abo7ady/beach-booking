@@ -11,6 +11,9 @@ import { formatPrice } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/booking/BookingModal';
 import TrendingBadge from '@/components/activity/TrendingBadge';
+import dynamic from 'next/dynamic';
+
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
 
 export default function ActivityDetailPage() {
   const params = useParams();
@@ -19,7 +22,7 @@ export default function ActivityDetailPage() {
   const { isAuthenticated, isAdmin, requireAuth } = useAuth();
   const { isFavorited, toggleFavorite } = useFavorites();
   const [showBooking, setShowBooking] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedMedia, setSelectedMedia] = useState(0);
 
   if (isLoading) {
     return (
@@ -49,6 +52,17 @@ export default function ActivityDetailPage() {
 
   const favorited = isAuthenticated && isFavorited(activity._id);
 
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const allMedia = [
+    ...(activity.images?.length ? [{ url: activity.images[0], type: 'image' }] : []),
+    ...(activity.mediaAlbum?.map((m: any) => ({ url: m.url, type: m.mediaType })) || [])
+  ];
+
   return (
     <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
       {/* Back Link */}
@@ -63,38 +77,67 @@ export default function ActivityDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
         {/* Image Gallery */}
         <div className="space-y-3">
-          <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-muted">
-            {activity.images?.[selectedImage] ? (
-              <img
-                src={activity.images[selectedImage]}
-                alt={activity.title}
-                className="w-full h-full object-cover"
-              />
+          <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-muted bg-black flex items-center justify-center">
+            {allMedia[selectedMedia] ? (
+              allMedia[selectedMedia].type === 'video' ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <ReactPlayer
+                    url={allMedia[selectedMedia].url}
+                    width="100%"
+                    height="100%"
+                    controls={true}
+                    playing={true}
+                    muted={true}
+                    style={{ aspectRatio: '4/3' }}
+                  />
+                </div>
+              ) : (
+                <img
+                  src={allMedia[selectedMedia].url}
+                  alt={activity.title}
+                  className="w-full h-full object-contain"
+                />
+              )
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <Waves className="w-16 h-16 text-muted-foreground/20" />
               </div>
             )}
             {activity.isTrending && (
-              <div className="absolute top-3 left-3">
+              <div className="absolute top-3 left-3 z-10 pointer-events-none">
                 <TrendingBadge />
               </div>
             )}
           </div>
-          {activity.images && activity.images.length > 1 && (
+
+          {allMedia.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {activity.images.map((img: string, i: number) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={cn(
-                    'w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors',
-                    i === selectedImage ? 'border-primary' : 'border-transparent hover:border-border'
-                  )}
-                >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
+              {allMedia.map((media, i) => {
+                const ytId = media.type === 'video' ? getYoutubeId(media.url) : null;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedMedia(i)}
+                    className={cn(
+                      'w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors relative bg-black',
+                      i === selectedMedia ? 'border-primary' : 'border-transparent hover:border-border'
+                    )}
+                  >
+                    {media.type === 'video' && ytId ? (
+                      <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt="Video Thumbnail" className="w-full h-full object-cover opacity-80" />
+                    ) : (
+                      <img src={media.url} alt="" className="w-full h-full object-cover" />
+                    )}
+                    {media.type === 'video' && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                          <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-white border-b-4 border-b-transparent ml-0.5" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -102,17 +145,20 @@ export default function ActivityDetailPage() {
         {/* Details */}
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
               {activity.title}
             </h1>
+            <p className="text-primary font-bold text-xl mb-4">
+              ${activity.price} / person
+            </p>
           </div>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
-              {activity.durationMinutes} minutes
+              {activity?.durationMinutes || 60} minutes
             </span>
-            {activity.tags?.length > 0 && (
+            {activity?.tags?.length > 0 && (
               <span className="flex items-center gap-1">
                 <Tag className="w-4 h-4" />
                 {activity.tags.join(', ')}
@@ -120,9 +166,26 @@ export default function ActivityDetailPage() {
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-4 my-6">
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <span className="text-sm text-muted-foreground block mb-1">Group Size</span>
+              <span className="font-medium text-foreground">
+                {activity?.minCapacity || 1} - {activity?.maxCapacity || 'Unlimited'} persons
+              </span>
+            </div>
+            {activity?.maxWeightLimit && activity.maxWeightLimit > 0 && (
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <span className="text-sm text-muted-foreground block mb-1">Max Weight</span>
+                <span className="font-medium text-foreground">
+                  {activity.maxWeightLimit} kg
+                </span>
+              </div>
+            )}
+          </div>
+
           <div>
             <h3 className="font-semibold text-foreground mb-2">About this experience</h3>
-            <p className="text-muted-foreground leading-relaxed">{activity.description}</p>
+            <p className="text-muted-foreground leading-relaxed">{activity?.description || 'No description available.'}</p>
           </div>
 
           {/* Actions */}

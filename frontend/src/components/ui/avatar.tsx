@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 export const Avatar = React.forwardRef<
@@ -20,29 +18,14 @@ Avatar.displayName = "Avatar";
 
 export const AvatarImage = React.forwardRef<
   HTMLImageElement,
-  React.ImgHTMLAttributes<HTMLImageElement> & { onLoadingStatusChange?: (status: 'loaded' | 'error') => void }
->(({ className, src, onLoadingStatusChange, ...props }, ref) => {
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
-
+  React.ImgHTMLAttributes<HTMLImageElement>
+>(({ className, src, ...props }, ref) => {
   if (!src) return null;
-
   return (
     <img
       ref={ref}
       src={src}
-      className={cn(
-        "aspect-square h-full w-full object-cover",
-        status !== 'loaded' && 'hidden',
-        className
-      )}
-      onLoad={() => {
-        setStatus('loaded');
-        onLoadingStatusChange?.('loaded');
-      }}
-      onError={() => {
-        setStatus('error');
-        onLoadingStatusChange?.('error');
-      }}
+      className={cn("aspect-square h-full w-full object-cover", className)}
       {...props}
     />
   );

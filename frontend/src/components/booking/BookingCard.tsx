@@ -43,7 +43,7 @@ export default function BookingCard({ booking }: BookingCardProps) {
             {formatDate(booking.desiredDate)}
           </div>
           <p className="text-primary text-sm font-semibold mt-1">
-            {activity?.price ? formatPrice(activity.price) : ''}
+            {booking.numberOfPersons} Person{booking.numberOfPersons !== 1 && 's'} - Total: ${booking.totalPrice || (activity?.price ? activity.price * (booking.numberOfPersons || 1) : 0)}
           </p>
           {booking.adminNote && (
             <p className="text-xs text-muted-foreground mt-1 italic">

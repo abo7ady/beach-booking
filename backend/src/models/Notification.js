@@ -4,9 +4,10 @@ const notificationSchema = new mongoose.Schema(
   {
     recipient: {
       type: mongoose.Schema.Types.Mixed,
-      required: true,
-      // Can be a string 'admin' to broadcast to all admins, or an ObjectId referencing a User
+      required: false, // Made optional for backward compatibility
     },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
     title: { type: String, required: true },
     message: { type: String, required: true },
     type: {
