@@ -1,6 +1,11 @@
 const errorHandler = (err, req, res, next) => {
-  const statusCode = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  let statusCode = err.status || err.statusCode || 500;
+  let message = err.message || 'Internal Server Error';
+
+  if (err.name === 'ValidationError') {
+    statusCode = 400;
+    message = Object.values(err.errors).map(val => val.message).join(', ');
+  }
 
   console.error(`[ERROR] ${statusCode} - ${message}`);
   if (process.env.NODE_ENV === 'development') {

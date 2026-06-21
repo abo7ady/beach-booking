@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
-import { PhoneInput } from '@/components/ui/phone-input';
 
 export default function LoginForm({
   onForgotPassword,
@@ -12,7 +11,7 @@ export default function LoginForm({
   onForgotPassword: () => void;
 }) {
   const { setAuth } = useAuthStore();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -22,12 +21,12 @@ export default function LoginForm({
     e.preventDefault();
     setError('');
 
-    if (!phone.trim()) return setError('Phone number is required');
+    if (!email.trim()) return setError('Email address is required');
     if (!password) return setError('Password is required');
 
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { phone, password });
+      const res = await api.post('/auth/login', { email: email.toLowerCase(), password });
       setAuth(res.data.token, res.data.user);
       window.location.href = '/';
     } catch (err: any) {
@@ -47,16 +46,18 @@ export default function LoginForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Phone Input */}
+      {/* Email Input */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-1.5">
-          Phone Number
+          Email Address
         </label>
-        <PhoneInput
-          value={phone}
-          onChange={(v) => setPhone(v)}
-          placeholder="Enter phone number"
-          defaultCountry="EG"
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter email address"
+          required
+          className="w-full h-10 rounded-md border border-input bg-white px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         />
       </div>
 

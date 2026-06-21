@@ -2,97 +2,128 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { signToken } from '../utils/signToken.js';
+import { isValidEmail } from '../utils/validate.js';
 import { sendOtp } from '../utils/sendOtp.js';
 import { consumeOtp } from '../utils/consumeOtp.js';
-import { isValidPhone } from '../utils/validatePhone.js';
 
-// ── Registration — Step 1: Create account + send OTP ──────────
+// ── Registration — Send Email OTP ─────────────────────────────
 export const register = async (req, res, next) => {
   try {
-    const { phone, password, name } = req.body;
+    const { email, password, name, whatsappNumber } = req.body;
 
     // 1. Validate inputs
-    if (!isValidPhone(phone))
-      return res.status(400).json({ error: 'Invalid phone number format' });
+    if (!name || name.trim().length < 2)
+      return res.status(400).json({ error: 'Name is required' });
+    if (!email || !isValidEmail(email))
+      return res.status(400).json({ error: 'Please enter a valid email address' });
     if (!password || password.length < 8)
       return res
         .status(400)
         .json({ error: 'Password must be at least 8 characters' });
-
-    // 2. Check phone not already taken by a verified account
-    const existing = await User.findOne({ phone });
-    if (existing?.isPhoneVerified)
+    if (!whatsappNumber || whatsappNumber.trim().length < 10)
       return res
-        .status(409)
-        .json({ error: 'Phone number already registered. Please log in.' });
+        .status(400)
+        .json({ error: 'Please enter a valid phone number' });
 
-    // 3. Create user (or overwrite a stale unverified account)
-    if (existing && !existing.isPhoneVerified) {
-      existing.password = password; // will be re-hashed by pre-save hook
-      existing.name = name || existing.name;
-      await existing.save();
+    // 2. Check email not already taken
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      if (existing.isEmailVerified) {
+        return res
+          .status(400)
+          .json({ error: 'Email already registered. Please log in.' });
+      } else {
+        // If they registered before but didn't verify, update their info
+        existing.password = password;
+        existing.name = name.trim();
+        existing.whatsappNumber = whatsappNumber.trim();
+        await existing.save();
+      }
     } else {
-      await User.create({ phone, password, name: name || '' });
+      // Create unverified user
+      await User.create({
+        email: email.toLowerCase(),
+        password,
+        name: name.trim(),
+        whatsappNumber: whatsappNumber.trim(),
+        isEmailVerified: false,
+      });
     }
 
-    // 4. Send OTP
-    await sendOtp(phone, 'registration');
+    // 3. Send Email OTP
+    await sendOtp(email.toLowerCase(), 'registration');
 
-    // 5. Notify Admin
+    return res.status(200).json({ message: 'Verification code sent to your email.' });
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      const message = Object.values(err.errors).map(val => val.message).join(', ');
+      return res.status(400).json({ error: message });
+    }
+    next(err);
+  }
+};
+
+// ── Verify Registration OTP ──────────────────────────────────
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and verification code are required' });
+    }
+
+    // 1. Verify OTP
+    await consumeOtp(email.toLowerCase(), otp, 'registration');
+
+    // 2. Mark user as verified
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { isEmailVerified: true },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // 3. Issue JWT
+    const token = signToken(user);
+
+    // Remove password from response
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    // 4. Notify Admin
     await Notification.create({
       recipient: 'admin',
       title: 'New User Registration',
-      message: `A new user (${phone}) has registered.`,
+      message: `A new user (${email}) has registered.`,
       type: 'register',
       targetUrl: '/admin/users',
     });
 
-    return res.status(201).json({ success: true, expiresIn: 180 });
+    return res.status(200).json({ token, user: userObj });
   } catch (err) {
     next(err);
   }
 };
 
-// ── Registration — Step 2: Verify OTP → activate account ──────
-export const verifyRegistration = async (req, res, next) => {
-  try {
-    const { phone, otp } = req.body;
-
-    // 1. Verify OTP (purpose: 'registration')
-    await consumeOtp(phone, otp, 'registration');
-
-    // 2. Activate account
-    const user = await User.findOneAndUpdate(
-      { phone },
-      { isPhoneVerified: true },
-      { new: true }
-    );
-
-    // 3. Issue JWT
-    const token = signToken(user);
-    return res.json({ token, user });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// ── Login — Direct (No OTP) ──────────────────────────────────
+// ── Login ────────────────────────────────────────────────────
 export const login = async (req, res, next) => {
   try {
-    const { phone, password } = req.body;
+    const { email, password } = req.body;
 
     // 1. Find user — explicitly select password
-    const user = await User.findOne({ phone }).select('+password');
+    const user = await User.findOne({ email: email?.toLowerCase() }).select('+password');
     if (!user)
       return res
         .status(401)
-        .json({ error: 'Invalid phone number or password' });
+        .json({ error: 'Invalid email or password' });
 
     // 2. Block unverified accounts
-    if (!user.isPhoneVerified)
+    if (!user.isEmailVerified)
       return res.status(403).json({
-        error: 'Phone not verified. Please complete registration.',
-        action: 'verify_registration',
+        error: 'Account not verified. Please verify your email first.',
       });
 
     // Block deactivated accounts
@@ -107,7 +138,7 @@ export const login = async (req, res, next) => {
     if (!isMatch)
       return res
         .status(401)
-        .json({ error: 'Invalid phone number or password' });
+        .json({ error: 'Invalid email or password' });
 
     // 4. Issue JWT
     const token = signToken(user);
@@ -122,30 +153,33 @@ export const login = async (req, res, next) => {
   }
 };
 
-// ── Forgot Password — Send reset OTP ─────────────────────────
+// ── Forgot Password — Send Reset OTP ─────────────────────────
 export const forgotPassword = async (req, res, next) => {
   try {
-    const { phone } = req.body;
+    const { email } = req.body;
 
-    const user = await User.findOne({ phone, isPhoneVerified: true });
-    // Always return 200 to prevent phone enumeration attacks
-    if (!user) return res.json({ success: true, expiresIn: 180 });
+    const user = await User.findOne({ email: email?.toLowerCase(), isEmailVerified: true });
+    // Always return 200/success to prevent email enumeration attacks
+    if (!user) return res.json({ success: true });
 
-    await sendOtp(phone, 'reset');
-    return res.json({ success: true, expiresIn: 180 });
+    // Send Reset OTP to email
+    await sendOtp(email.toLowerCase(), 'reset');
+
+    return res.json({ success: true });
   } catch (err) {
     next(err);
   }
 };
 
-// ── Verify Reset OTP → generate reset token ──────────────────
+// ── Verify Reset OTP ─────────────────────────────────────────
 export const verifyResetOtp = async (req, res, next) => {
   try {
-    const { phone, otp } = req.body;
+    const { email, otp } = req.body;
 
-    await consumeOtp(phone, otp, 'reset');
+    // 1. Verify OTP
+    await consumeOtp(email?.toLowerCase(), otp, 'reset');
 
-    // Generate a 32-byte random reset token
+    // 2. Generate secure one-time password reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto
       .createHash('sha256')
@@ -153,23 +187,23 @@ export const verifyResetOtp = async (req, res, next) => {
       .digest('hex');
 
     await User.findOneAndUpdate(
-      { phone },
+      { email: email?.toLowerCase() },
       {
         passwordResetToken: hashedToken,
-        passwordResetExpires: Date.now() + 15 * 60 * 1000, // 15 minutes
+        passwordResetExpires: Date.now() + 15 * 60 * 1000, // 15 mins
       }
     );
 
-    return res.json({ resetToken });
+    return res.json({ success: true, resetToken });
   } catch (err) {
     next(err);
   }
 };
 
-// ── Reset Password — use reset token ─────────────────────────
+// ── Reset Password — Use Reset Token ─────────────────────────
 export const resetPassword = async (req, res, next) => {
   try {
-    const { phone, resetToken, newPassword } = req.body;
+    const { email, resetToken, newPassword } = req.body;
 
     if (!newPassword || newPassword.length < 8)
       return res
@@ -183,7 +217,7 @@ export const resetPassword = async (req, res, next) => {
       .digest('hex');
 
     const user = await User.findOne({
-      phone,
+      email: email?.toLowerCase(),
       passwordResetToken: hashedToken,
       passwordResetExpires: { $gt: Date.now() },
     }).select('+password');
@@ -216,4 +250,3 @@ export const resetPassword = async (req, res, next) => {
     next(err);
   }
 };
-

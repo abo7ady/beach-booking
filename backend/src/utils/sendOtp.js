@@ -1,10 +1,10 @@
 import bcrypt from 'bcryptjs';
 import Otp from '../models/Otp.js';
-import { sendSMS } from '../services/sms.service.js';
+import { sendEmailOTP } from './email.js';
 
-export const sendOtp = async (phone, purpose) => {
-  // Rate limit: 1 OTP per 60s per phone per purpose
-  const recent = await Otp.findOne({ phone, purpose });
+export const sendOtp = async (email, purpose) => {
+  // Rate limit: 1 OTP per 60s per email per purpose
+  const recent = await Otp.findOne({ email, purpose });
   if (recent) {
     const elapsed = (Date.now() - recent.createdAt) / 1000;
     if (elapsed < 60) {
@@ -18,13 +18,19 @@ export const sendOtp = async (phone, purpose) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = await bcrypt.hash(otp, 10);
 
-  // Remove any existing OTP for this phone + purpose
-  await Otp.findOneAndDelete({ phone, purpose });
-  await Otp.create({ phone, hashedOtp, purpose });
+  // Remove any existing OTP for this email + purpose
+  await Otp.findOneAndDelete({ email, purpose });
+  await Otp.create({ email, hashedOtp, purpose });
 
-  await sendSMS(phone, `Your Beach Booking code is: ${otp}. Valid for 3 minutes.`);
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[OTP][${purpose}] ${phone}: ${otp}`);
+  // Send the email — let errors propagate with a friendly message
+  try {
+    await sendEmailOTP(email, otp);
+    console.log(`[OTP] ✅ OTP sent for ${purpose} to ${email}`);
+  } catch (emailErr) {
+    console.error(`[OTP] ❌ Failed to send OTP email for ${purpose} to ${email}:`, emailErr.message);
+    const err = new Error('Failed to send verification email. Please try again later.');
+    err.status = 500;
+    throw err;
   }
 };
+

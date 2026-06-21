@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Heart, Clock, Waves } from 'lucide-react';
+import { Heart, Clock, Waves, Users } from 'lucide-react';
 import { Activity } from '@/types';
 import { formatPrice, cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -103,11 +103,20 @@ export default function ActivityCard({ activity, onBook }: ActivityCardProps) {
         <p className="text-muted-foreground text-sm line-clamp-2">
           {activity.description}
         </p>
-        <div className="flex items-center justify-end pt-1">
-          <span className="text-muted-foreground text-xs flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {activity.durationMinutes} min
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-primary font-bold text-base">
+            {formatPrice(activity.price || 0)}
           </span>
+          <div className="flex items-center gap-3 text-muted-foreground text-xs font-medium">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              {activity.durationMinutes} min
+            </span>
+            <span className="flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" />
+              {activity.maxPeople || 0} max
+            </span>
+          </div>
         </div>
         {!isAdmin && (
           <button

@@ -9,11 +9,20 @@ import ActivityGrid from '@/components/activity/ActivityGrid';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { User, Send, Camera, Ghost, MessageSquare, Phone, Save } from 'lucide-react';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+};
 
 type Tab = 'bookings' | 'favorites' | 'settings';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, openAuthModal } = useAuth();
+  const { user, isAuthenticated, isCheckingAuth, openAuthModal } = useAuth();
   const { updateUser } = useAuthStore();
   const { bookings, isLoading: bookingsLoading } = useMyBookings();
   const { favorites, isLoading: favsLoading } = useFavorites();
@@ -21,6 +30,7 @@ export default function ProfilePage() {
 
   // Settings form
   const [name, setName] = useState(user?.name || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(user?.whatsappNumber || '');
   const [telegram, setTelegram] = useState(user?.telegram || '');
   const [instagram, setInstagram] = useState(user?.instagram || '');
   const [snapchat, setSnapchat] = useState(user?.snapchat || '');
@@ -28,14 +38,43 @@ export default function ProfilePage() {
   const [preferredContact, setPreferredContact] = useState(user?.preferredContact || 'whatsapp');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [error, setError] = useState('');
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        setError('Please select a valid image file (JPG or PNG)');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image file must be less than 5MB');
+        return;
+      }
+      setProfilePictureFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setError('');
+    }
+  };
 
   useEffect(() => {
-    if (!isAuthenticated) openAuthModal('login');
-  }, [isAuthenticated, openAuthModal]);
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (!isCheckingAuth && !isAuthenticated) openAuthModal('login');
+  }, [isAuthenticated, isCheckingAuth, openAuthModal]);
 
   useEffect(() => {
     if (user) {
       setName(user.name || '');
+      setWhatsappNumber(user.whatsappNumber || '');
       setTelegram(user.telegram || '');
       setInstagram(user.instagram || '');
       setSnapchat(user.snapchat || '');
@@ -47,21 +86,51 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     setSaveMsg('');
+    setError('');
+
+    if (!name.trim() || name.trim().length < 2) {
+      setError('Name is required');
+      setSaving(false);
+      return;
+    }
+
+    if (!whatsappNumber || whatsappNumber.trim().length < 10) {
+      setError('Please enter a valid phone number');
+      setSaving(false);
+      return;
+    }
+
     try {
-      const res = await api.put('/profile', {
-        name, telegram, instagram, snapchat, messenger, preferredContact
+      const formData = new FormData();
+      formData.append('name', name.trim());
+      formData.append('whatsappNumber', whatsappNumber.trim());
+      formData.append('telegram', telegram);
+      formData.append('instagram', instagram);
+      formData.append('snapchat', snapchat);
+      formData.append('messenger', messenger);
+      formData.append('preferredContact', preferredContact);
+      if (profilePictureFile) {
+        formData.append('profilePicture', profilePictureFile);
+      }
+
+      const res = await api.put('/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       updateUser(res.data.user);
       setSaveMsg('Profile saved!');
+      setProfilePictureFile(null);
+      setPreviewUrl('');
       setTimeout(() => setSaveMsg(''), 3000);
-    } catch {
-      setSaveMsg('Failed to save');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
-  if (!isAuthenticated) return null;
+  if (isCheckingAuth || !isAuthenticated) return null;
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'bookings', label: 'My Bookings' },
@@ -73,12 +142,13 @@ export default function ProfilePage() {
     <div className="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
       {/* Profile Header */}
       <div className="flex items-center gap-4 mb-8">
-        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-          <User className="w-7 h-7 text-primary" />
-        </div>
+        <Avatar className="w-14 h-14">
+          <AvatarImage src={user?.profilePicture} alt={user?.name} />
+          <AvatarFallback className="text-base">{getInitials(user?.name || '')}</AvatarFallback>
+        </Avatar>
         <div>
           <h1 className="text-xl font-bold text-foreground">{user?.name || 'My Profile'}</h1>
-          <p className="text-sm text-muted-foreground">{user?.phone}</p>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
         </div>
       </div>
 
@@ -122,6 +192,44 @@ export default function ProfilePage() {
 
       {activeTab === 'settings' && (
         <div className="space-y-6">
+          {/* Profile Picture Upload Section */}
+          <div className="flex items-center gap-4 border-b border-border pb-6">
+            <div 
+              onClick={() => document.getElementById('avatar-input')?.click()}
+              className="relative group w-20 h-20 rounded-full shrink-0 cursor-pointer"
+            >
+              <Avatar className="w-20 h-20">
+                {previewUrl ? (
+                  <AvatarImage src={previewUrl} alt="Preview" />
+                ) : (
+                  <AvatarImage src={user?.profilePicture} alt={user?.name} />
+                )}
+                <AvatarFallback className="text-2xl">{getInitials(user?.name || '')}</AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground text-sm">Profile Picture</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">JPG or PNG. Max size 5MB.</p>
+              <button
+                type="button"
+                onClick={() => document.getElementById('avatar-input')?.click()}
+                className="mt-2 text-xs font-semibold text-primary hover:underline"
+              >
+                Upload new picture
+              </button>
+              <input
+                id="avatar-input"
+                type="file"
+                accept="image/png, image/jpeg, image/jpg"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1.5">Display Name</label>
             <input
@@ -156,17 +264,19 @@ export default function ProfilePage() {
               Add your handles so the admin can contact you easily.
             </p>
 
-            {/* WhatsApp (auto from phone) */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+            {/* WhatsApp */}
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
                 <Phone className="w-4 h-4 text-emerald-600" />
               </div>
-              <input
-                type="text"
-                value={user?.phone || ''}
-                disabled
-                className="flex-1 h-10 rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground"
-              />
+              <div className="flex-1">
+                <PhoneInput
+                  value={whatsappNumber}
+                  onChange={setWhatsappNumber}
+                  placeholder="Enter WhatsApp number"
+                  defaultCountry="EG"
+                />
+              </div>
             </div>
 
             {/* Telegram */}
@@ -238,6 +348,11 @@ export default function ProfilePage() {
             {saveMsg && (
               <span className="text-sm text-success font-medium animate-fade-in">
                 {saveMsg}
+              </span>
+            )}
+            {error && (
+              <span className="text-sm text-destructive font-medium animate-fade-in">
+                {error}
               </span>
             )}
           </div>

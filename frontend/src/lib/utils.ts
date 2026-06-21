@@ -36,7 +36,7 @@ export function generateContactLinks(user: any) {
   const cleanPhone = (phone?: string) => phone?.replace(/\+/g, '').trim();
 
   return {
-    whatsapp: user.phone ? `https://wa.me/${cleanPhone(user.phone)}` : null,
+    whatsapp: user.whatsappNumber ? `https://wa.me/${cleanPhone(user.whatsappNumber)}` : null,
     telegram: user.telegram ? `https://t.me/${cleanHandle(user.telegram)}` : null,
     instagram: user.instagram ? `https://instagram.com/${cleanHandle(user.instagram)}` : null,
     snapchat: user.snapchat ? `https://snapchat.com/add/${cleanHandle(user.snapchat)}` : null,

@@ -10,16 +10,19 @@ import { Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function FavoritesPage() {
-  const { isAuthenticated, requireAuth, openAuthModal } = useAuth();
+  const { isAuthenticated, isCheckingAuth, requireAuth, openAuthModal } = useAuth();
   const { favorites, isLoading } = useFavorites();
   const [bookingActivity, setBookingActivity] = useState<Activity | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    if (isCheckingAuth) return;
     if (!isAuthenticated) {
       openAuthModal('login');
     }
-  }, [isAuthenticated, openAuthModal]);
+  }, [isAuthenticated, isCheckingAuth, openAuthModal]);
+
+  if (isCheckingAuth) return null;
 
   if (!isAuthenticated) {
     return (

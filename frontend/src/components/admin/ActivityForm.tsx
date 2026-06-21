@@ -17,6 +17,8 @@ export default function ActivityForm({ activity, onClose, onSuccess }: ActivityF
   const [description, setDescription] = useState(activity?.description || '');
   const [durationMinutes, setDurationMinutes] = useState(activity?.durationMinutes?.toString() || '60');
   const [tags, setTags] = useState(activity?.tags?.join(', ') || '');
+  const [price, setPrice] = useState(activity?.price?.toString() || '');
+  const [maxPeople, setMaxPeople] = useState(activity?.maxPeople?.toString() || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -30,6 +32,10 @@ export default function ActivityForm({ activity, onClose, onSuccess }: ActivityF
 
     if (!title.trim()) return setError('Title is required');
     if (!description.trim()) return setError('Description is required');
+    if (!price.trim()) return setError('Price is required');
+    if (isNaN(Number(price)) || Number(price) < 0) return setError('Price must be a valid positive number');
+    if (!maxPeople.trim()) return setError('Max Capacity is required');
+    if (isNaN(Number(maxPeople)) || Number(maxPeople) <= 0) return setError('Max Capacity must be a valid positive number');
     if (!isEdit && !newImageFile) return setError('An image is required when creating a new activity.');
 
     setLoading(true);
@@ -38,6 +44,8 @@ export default function ActivityForm({ activity, onClose, onSuccess }: ActivityF
       formData.append('title', title.trim());
       formData.append('description', description.trim());
       formData.append('durationMinutes', durationMinutes);
+      formData.append('price', price);
+      formData.append('maxPeople', maxPeople);
       
       const tagsArray = tags.split(',').map((t) => t.trim()).filter(Boolean);
       tagsArray.forEach((tag) => formData.append('tags', tag));
@@ -128,6 +136,33 @@ export default function ActivityForm({ activity, onClose, onSuccess }: ActivityF
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="ATV, Desert (comma-separated)"
+                className="w-full h-10 rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Price (EGP) *</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                min="0"
+                placeholder="e.g. 500"
+                required
+                className="w-full h-10 rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Max Capacity (people) *</label>
+              <input
+                type="number"
+                value={maxPeople}
+                onChange={(e) => setMaxPeople(e.target.value)}
+                min="1"
+                placeholder="e.g. 10"
+                required
                 className="w-full h-10 rounded-md border border-input bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>

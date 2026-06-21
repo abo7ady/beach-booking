@@ -3,23 +3,22 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
-import OtpStep from './OtpStep';
 import { useAuthStore } from '@/store/authStore';
 import { PhoneInput } from '@/components/ui/phone-input';
+import OtpStep from './OtpStep';
 
 export default function RegisterForm() {
   const { setAuth } = useAuthStore();
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [otpError, setOtpError] = useState('');
   const [attemptsLeft, setAttemptsLeft] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
-
-  // Removed fullPhone logic, phone is already formatted
 
   const getStrength = () => {
     if (!password) return { level: 0, label: '', color: '' };
@@ -41,16 +40,20 @@ export default function RegisterForm() {
     e.preventDefault();
     setError('');
 
-    if (!phone.trim()) return setError('Phone number is required');
+    if (!name.trim() || name.trim().length < 2) return setError('Name is required');
+    if (!email.trim()) return setError('Email address is required');
+    if (!whatsappNumber.trim() || whatsappNumber.trim().length < 10)
+      return setError('Please enter a valid phone number');
     if (!password || password.length < 8)
       return setError('Password must be at least 8 characters');
 
     setLoading(true);
     try {
       await api.post('/auth/register', {
-        phone,
+        email: email.toLowerCase(),
         password,
-        name: name.trim() || undefined,
+        name: name.trim(),
+        whatsappNumber: whatsappNumber.trim(),
       });
       setStep('otp');
     } catch (err: any) {
@@ -64,10 +67,11 @@ export default function RegisterForm() {
     setOtpError('');
     try {
       const res = await api.post('/auth/register/verify', {
-        phone,
+        email: email.toLowerCase(),
         otp,
       });
       setAuth(res.data.token, res.data.user);
+      window.location.href = '/';
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Invalid code.';
       const left = err.response?.data?.attemptsLeft;
@@ -80,9 +84,10 @@ export default function RegisterForm() {
   const handleResendOtp = async () => {
     try {
       await api.post('/auth/register', {
-        phone,
+        email: email.toLowerCase(),
         password,
-        name: name.trim() || undefined,
+        name: name.trim(),
+        whatsappNumber: whatsappNumber.trim(),
       });
     } catch {
       // Silently fail resend
@@ -92,7 +97,7 @@ export default function RegisterForm() {
   if (step === 'otp') {
     return (
       <OtpStep
-        phone={phone}
+        email={email}
         onVerify={handleVerifyOtp}
         onResend={handleResendOtp}
         onBack={() => setStep('form')}
@@ -113,22 +118,40 @@ export default function RegisterForm() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Your name (optional)"
+          placeholder="Enter your name"
           className="w-full h-10 rounded-md border border-input bg-white px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         />
       </div>
 
-      {/* Phone Input */}
+      {/* Email Input */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-1.5">
-          Phone Number
+          Email Address
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter email address"
+          required
+          className="w-full h-10 rounded-md border border-input bg-white px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        />
+      </div>
+
+      {/* WhatsApp Number Input */}
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1.5">
+          WhatsApp Number
         </label>
         <PhoneInput
-          value={phone}
-          onChange={(v) => setPhone(v)}
-          placeholder="Enter phone number"
+          value={whatsappNumber}
+          onChange={(v) => setWhatsappNumber(v)}
+          placeholder="Enter WhatsApp number"
           defaultCountry="EG"
         />
+        <span className="text-xs text-muted-foreground mt-1.5 block">
+          Please provide a valid WhatsApp number so we can securely confirm your registration and send your booking updates.
+        </span>
       </div>
 
       {/* Password Input */}

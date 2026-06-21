@@ -5,14 +5,13 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import OtpStep from './OtpStep';
-import { PhoneInput } from '@/components/ui/phone-input';
 
-type Step = 'phone' | 'otp' | 'newPassword';
+type Step = 'email' | 'otp' | 'newPassword';
 
 export default function ForgotPasswordFlow({ onBack }: { onBack: () => void }) {
   const { setAuth } = useAuthStore();
-  const [step, setStep] = useState<Step>('phone');
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,31 +21,29 @@ export default function ForgotPasswordFlow({ onBack }: { onBack: () => void }) {
   const [attemptsLeft, setAttemptsLeft] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
 
-  // Removed fullPhone, phone is correctly formatted
-
-  // Step 1: Send reset OTP
-  const handleSendCode = async (e: React.FormEvent) => {
+  // Step 1: Request password reset OTP
+  const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!phone.trim()) return setError('Phone number is required');
+    if (!email.trim()) return setError('Email address is required');
 
     setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { phone });
+      await api.post('/auth/forgot-password', { email: email.toLowerCase() });
       setStep('otp');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to send code.');
+      setError(err.response?.data?.error || 'Failed to request password reset.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2: Verify OTP → get reset token
+  // Step 2: Verify reset OTP
   const handleVerifyOtp = async (otp: string) => {
     setOtpError('');
     try {
       const res = await api.post('/auth/reset-password/verify', {
-        phone,
+        email: email.toLowerCase(),
         otp,
       });
       setResetToken(res.data.resetToken);
@@ -62,7 +59,7 @@ export default function ForgotPasswordFlow({ onBack }: { onBack: () => void }) {
 
   const handleResendOtp = async () => {
     try {
-      await api.post('/auth/forgot-password', { phone });
+      await api.post('/auth/forgot-password', { email: email.toLowerCase() });
     } catch {
       // Silently handle
     }
@@ -81,11 +78,12 @@ export default function ForgotPasswordFlow({ onBack }: { onBack: () => void }) {
     setLoading(true);
     try {
       const res = await api.post('/auth/reset-password', {
-        phone,
+        email: email.toLowerCase(),
         resetToken,
         newPassword,
       });
       setAuth(res.data.token, res.data.user);
+      window.location.href = '/';
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to reset password.');
     } finally {
@@ -97,27 +95,29 @@ export default function ForgotPasswordFlow({ onBack }: { onBack: () => void }) {
     <div>
       {/* Back Button */}
       <button
-        onClick={step === 'phone' ? onBack : () => setStep('phone')}
+        onClick={step === 'email' ? onBack : () => setStep('email')}
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        {step === 'phone' ? 'Back to login' : 'Start over'}
+        {step === 'email' ? 'Back to login' : 'Start over'}
       </button>
 
-      {step === 'phone' && (
-        <form onSubmit={handleSendCode} className="space-y-4">
+      {step === 'email' && (
+        <form onSubmit={handleRequestReset} className="space-y-4">
           <div className="text-center mb-2">
-            <h3 className="text-lg font-semibold">Reset Password</h3>
+            <h3 className="text-lg font-semibold text-foreground">Reset Password</h3>
             <p className="text-sm text-muted-foreground">
-              Enter your phone number to receive a reset code
+              Enter your email address to receive a reset code
             </p>
           </div>
           <div>
-            <PhoneInput
-              value={phone}
-              onChange={(v) => setPhone(v)}
-              placeholder="Enter phone number"
-              defaultCountry="EG"
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email address"
+              required
+              className="w-full h-10 rounded-md border border-input bg-white px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -133,10 +133,10 @@ export default function ForgotPasswordFlow({ onBack }: { onBack: () => void }) {
 
       {step === 'otp' && (
         <OtpStep
-          phone={phone}
+          email={email}
           onVerify={handleVerifyOtp}
           onResend={handleResendOtp}
-          onBack={() => setStep('phone')}
+          onBack={() => setStep('email')}
           error={otpError}
           attemptsLeft={attemptsLeft}
         />
@@ -145,7 +145,7 @@ export default function ForgotPasswordFlow({ onBack }: { onBack: () => void }) {
       {step === 'newPassword' && (
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div className="text-center mb-2">
-            <h3 className="text-lg font-semibold">New Password</h3>
+            <h3 className="text-lg font-semibold text-foreground">New Password</h3>
             <p className="text-sm text-muted-foreground">
               Choose a strong password for your account
             </p>

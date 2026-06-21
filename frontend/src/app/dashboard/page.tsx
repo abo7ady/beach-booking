@@ -5,18 +5,28 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyBookings } from '@/hooks/useBookings';
 import BookingCard from '@/components/booking/BookingCard';
-import { CalendarCheck } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+};
 
 export default function DashboardPage() {
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { user, isAuthenticated, isCheckingAuth, openAuthModal } = useAuth();
   const router = useRouter();
   const { bookings, isLoading } = useMyBookings();
 
   useEffect(() => {
+    if (isCheckingAuth) return;
     if (!isAuthenticated) {
       openAuthModal('login');
     }
-  }, [isAuthenticated, openAuthModal]);
+  }, [isAuthenticated, isCheckingAuth, openAuthModal]);
+
+  if (isCheckingAuth) return null;
 
   if (!isAuthenticated) {
     return (
@@ -28,9 +38,15 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
-      <div className="flex items-center gap-3 mb-8">
-        <CalendarCheck className="w-6 h-6 text-primary" />
-        <h1 className="text-2xl font-bold text-foreground">My Bookings</h1>
+      <div className="flex items-center gap-4 mb-8">
+        <Avatar className="w-16 h-16">
+          <AvatarImage src={user?.profilePicture} alt={user?.name} />
+          <AvatarFallback className="text-lg">{getInitials(user?.name || '')}</AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Welcome back, {user?.name || 'Explorer'}!</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Here are your beach bookings and activities.</p>
+        </div>
       </div>
 
       {isLoading ? (

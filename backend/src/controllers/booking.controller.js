@@ -86,7 +86,7 @@ export const getAllBookings = async (req, res, next) => {
 
     const [bookings, total] = await Promise.all([
       Booking.find(filter)
-        .populate('user', 'name phone telegram instagram snapchat messenger')
+        .populate('user', 'name email whatsappNumber telegram instagram snapchat messenger')
         .populate('activity', 'title images price')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -141,7 +141,7 @@ export const updateBookingStatus = async (req, res, next) => {
     }
 
     const populated = await booking.populate([
-      { path: 'user', select: 'name phone telegram instagram snapchat messenger' },
+      { path: 'user', select: 'name email whatsappNumber telegram instagram snapchat messenger' },
       { path: 'activity', select: 'title images price' },
     ]);
 

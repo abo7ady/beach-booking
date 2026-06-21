@@ -33,7 +33,7 @@ const typeBadge: Record<string, { label: string; cls: string }> = {
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated, isCheckingAuth, openAuthModal } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [page, setPage] = useState(1);
@@ -54,12 +54,13 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
+    if (isCheckingAuth) return;
     if (!isAuthenticated) {
       openAuthModal('login');
       return;
     }
     fetchData();
-  }, [isAuthenticated, page]);
+  }, [isAuthenticated, isCheckingAuth, page]);
 
   // ── Actions ──────────────────────────────────────────────
   const toggleRead = async (id: string) => {
@@ -87,7 +88,7 @@ export default function NotificationsPage() {
   };
 
   // ── Guard ────────────────────────────────────────────────
-  if (!isAuthenticated) return null;
+  if (isCheckingAuth || !isAuthenticated) return null;
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 

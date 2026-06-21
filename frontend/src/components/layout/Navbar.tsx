@@ -7,15 +7,21 @@ import { useAuth } from '@/hooks/useAuth';
 import { Heart, User, Menu, X, Waves, LogOut, MessageCircle } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import NotificationBell from './NotificationBell';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+};
 
 export default function Navbar() {
   const { user, isAuthenticated, isAdmin, openAuthModal, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
-  if (pathname?.startsWith('/admin/login')) {
-    return null;
-  }
+
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-16 bg-white/80 backdrop-blur-md border-b border-border">
@@ -82,9 +88,10 @@ export default function Navbar() {
                   href="/profile"
                   className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 >
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
+                  <Avatar className="w-7 h-7">
+                    <AvatarImage src={user?.profilePicture} alt={user?.name} />
+                    <AvatarFallback className="text-[10px]">{getInitials(user?.name || '')}</AvatarFallback>
+                  </Avatar>
                   <span>{user?.name || 'Profile'}</span>
                 </Link>
               )}

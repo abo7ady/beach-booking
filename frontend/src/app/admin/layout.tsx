@@ -1,34 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import AdminSidebar from '@/components/layout/AdminSidebar';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isCheckingAuth } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
-
-  const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (isMounted && !isLoginPage && (!isAuthenticated || !isAdmin)) {
-      router.push('/admin/login');
+    if (isMounted && !isCheckingAuth && (!isAuthenticated || !isAdmin)) {
+      router.push('/');
     }
-  }, [isMounted, isAuthenticated, isAdmin, isLoginPage, router]);
+  }, [isMounted, isCheckingAuth, isAuthenticated, isAdmin, router]);
 
-  // Login page doesn't need the admin layout wrapper
-  if (isLoginPage) {
-    return <>{children}</>;
-  }
-
-  if (!isMounted) {
+  if (!isMounted || isCheckingAuth) {
     return (
       <div className="flex min-h-screen items-center justify-center -mt-16 pt-16">
         <div className="animate-pulse text-muted-foreground">Checking authentication...</div>

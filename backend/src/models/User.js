@@ -3,10 +3,11 @@ import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema(
   {
-    phone: {
+    email: {
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
       trim: true,
       index: true,
     },
@@ -16,15 +17,29 @@ const userSchema = new mongoose.Schema(
       minlength: 8,
       select: false, // Never returned in queries by default
     },
-    name: { type: String, trim: true, default: '' },
+    name: {
+      type: String,
+      required: [true, 'Name is required'],
+      trim: true,
+    },
+    profilePicture: {
+      type: String,
+      default: '',
+    },
+    whatsappNumber: {
+      type: String,
+      required: [true, 'WhatsApp number is required'],
+      minlength: [10, 'Please enter a valid phone number'],
+      trim: true,
+    },
     role: {
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
     },
-    isPhoneVerified: {
+    isEmailVerified: {
       type: Boolean,
-      default: false, // Set to true after OTP verification at registration
+      default: false,
     },
     isActive: {
       type: Boolean,

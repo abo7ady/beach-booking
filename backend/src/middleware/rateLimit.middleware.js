@@ -13,7 +13,7 @@ export const apiLimiter = rateLimit({
 export const otpLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
-  keyGenerator: (req) => req.body.phone || req.ip,
+  keyGenerator: (req) => req.body.email || req.body.phone || req.ip,
   validate: { default: false },
   message: { error: 'Too many OTP requests. Please try again later.' },
   skip: (req) => req.method === 'OPTIONS',
