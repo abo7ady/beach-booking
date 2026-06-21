@@ -65,12 +65,14 @@ export const getActivity = async (req, res, next) => {
 // ── Create Activity (Admin) ─────────────────────────────────
 export const createActivity = async (req, res, next) => {
   try {
-    const { title, description, durationMinutes, tags } = req.body;
+    const { title, description, durationMinutes, tags, price, maxPeople } = req.body;
     
     const newActivityData = {
       title,
       description,
-      durationMinutes,
+      durationMinutes: durationMinutes ? Number(durationMinutes) : undefined,
+      price: price ? Number(price) : undefined,
+      maxPeople: maxPeople ? Number(maxPeople) : undefined,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim())) : [],
     };
 
@@ -91,6 +93,15 @@ export const updateActivity = async (req, res, next) => {
     const updates = { ...req.body };
     if (updates.tags && typeof updates.tags === 'string') {
       updates.tags = updates.tags.split(',').map((t) => t.trim());
+    }
+    if (updates.durationMinutes !== undefined) {
+      updates.durationMinutes = Number(updates.durationMinutes);
+    }
+    if (updates.price !== undefined) {
+      updates.price = Number(updates.price);
+    }
+    if (updates.maxPeople !== undefined) {
+      updates.maxPeople = Number(updates.maxPeople);
     }
 
     if (req.file && req.file.path) {

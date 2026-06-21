@@ -56,7 +56,7 @@ export default function AdminBookingsPage() {
                     <tr key={booking._id} className="border-b border-border last:border-0 hover:bg-accent/50 transition-colors">
                       <td className="px-4 py-3">
                         <p className="text-sm font-medium text-foreground">{user?.name || 'User'}</p>
-                        <p className="text-xs text-muted-foreground">{user?.phone}</p>
+                        <p className="text-xs text-muted-foreground">{user?.email}</p>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">
                         {activity?.title || 'Activity'}

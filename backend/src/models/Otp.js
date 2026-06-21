@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const otpSchema = new mongoose.Schema({
-  phone: { type: String, required: true, index: true },
+  email: { type: String, required: true, index: true },
   hashedOtp: { type: String, required: true },
   attempts: { type: Number, default: 0 }, // Max 3 wrong guesses
   purpose: {
@@ -18,7 +18,7 @@ const otpSchema = new mongoose.Schema({
   },
 });
 
-// Scope OTP lookup per phone + purpose
-otpSchema.index({ phone: 1, purpose: 1 });
+// Scope OTP lookup per email + purpose
+otpSchema.index({ email: 1, purpose: 1 });
 
 export default mongoose.model('Otp', otpSchema);

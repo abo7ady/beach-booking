@@ -1,187 +1,131 @@
 'use client';
 
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useState, useEffect } from 'react';
 
 interface OtpStepProps {
-  phone: string;
+  email: string;
   onVerify: (otp: string) => Promise<void>;
   onResend: () => Promise<void>;
-  onBack?: () => void;
+  onBack: () => void;
   error?: string;
   attemptsLeft?: number;
 }
 
 export default function OtpStep({
-  phone,
+  email,
   onVerify,
   onResend,
   onBack,
-  error,
+  error: propError,
   attemptsLeft,
 }: OtpStepProps) {
-  const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
-  const [countdown, setCountdown] = useState(180);
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [error, setError] = useState(propError || '');
 
   useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
+    setError(propError || '');
+  }, [propError]);
 
   useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setInterval(() => setCountdown((c) => c - 1), 1000);
-    return () => clearInterval(timer);
-  }, [countdown]);
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
-  const formatCountdown = (s: number) => {
-    const min = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  };
-
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-
-    const newDigits = [...digits];
-    newDigits[index] = value.slice(-1);
-    setDigits(newDigits);
-
-    // Auto-focus next
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-submit on 6th digit
-    if (index === 5 && value) {
-      const otp = newDigits.join('');
-      if (otp.length === 6) {
-        handleVerify(otp);
-      }
-    }
-  };
-
-  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    const newDigits = [...digits];
-    pasted.split('').forEach((d, i) => {
-      newDigits[i] = d;
-    });
-    setDigits(newDigits);
-    if (pasted.length === 6) {
-      handleVerify(pasted);
-    } else {
-      inputRefs.current[pasted.length]?.focus();
-    }
-  };
+    setError('');
 
-  const handleVerify = async (otp: string) => {
+    if (otp.length !== 6 || isNaN(Number(otp))) {
+      return setError('Please enter a valid 6-digit code');
+    }
+
     setLoading(true);
     try {
       await onVerify(otp);
-    } catch {
-      setDigits(Array(6).fill(''));
-      inputRefs.current[0]?.focus();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Verification failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    setResending(true);
+    setError('');
+    setResendLoading(true);
     try {
       await onResend();
-      setCountdown(180);
-      setDigits(Array(6).fill(''));
-      inputRefs.current[0]?.focus();
+      setResendCooldown(60);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to resend code.');
     } finally {
-      setResending(false);
+      setResendLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h3 className="text-lg font-semibold text-foreground">Enter the code</h3>
+    <div className="space-y-4">
+      <div className="text-center mb-2">
+        <h3 className="text-lg font-semibold text-foreground">Verification Required</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Sent to {phone}{' '}
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="text-primary hover:underline inline-flex items-center gap-1"
-            >
-              ✏️ Change
-            </button>
-          )}
+          We sent a 6-digit code to <span className="font-semibold text-foreground">{email}</span>
         </p>
       </div>
 
-      {/* OTP Boxes */}
-      <div className="flex justify-center gap-2" onPaste={handlePaste}>
-        {digits.map((digit, i) => (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
           <input
-            key={i}
-            ref={(el) => { inputRefs.current[i] = el; }}
             type="text"
-            inputMode="numeric"
-            maxLength={1}
-            value={digit}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-            disabled={loading}
-            className="w-10 h-12 text-center text-lg font-semibold rounded-md border border-input bg-white focus:ring-2 focus:ring-ring focus:outline-none transition-all disabled:opacity-50"
+            maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+            placeholder="Enter 6-digit code"
+            className="w-full h-12 text-center text-xl font-bold tracking-[8px] rounded-md border border-input bg-white px-3 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           />
-        ))}
-      </div>
-
-      {/* Error */}
-      {error && (
-        <p className="text-center text-sm text-destructive">
-          {error}
-          {attemptsLeft !== undefined && ` ${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} left.`}
-        </p>
-      )}
-
-      {/* Countdown / Resend */}
-      <div className="text-center">
-        {countdown > 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Resend code in {formatCountdown(countdown)}
+          <p className="text-sm text-muted-foreground mt-2 text-center">
+            Didn't receive the code? Please check your{' '}
+            <span className="font-semibold text-amber-600">spam</span> or{' '}
+            <span className="font-semibold text-amber-600">junk folder</span>.
           </p>
-        ) : (
-          <button
-            onClick={handleResend}
-            disabled={resending}
-            className="text-sm text-primary hover:underline font-medium disabled:opacity-50"
-          >
-            {resending ? 'Sending...' : 'Resend code'}
-          </button>
-        )}
-      </div>
+        </div>
 
-      {/* Submit Button */}
-      <button
-        onClick={() => handleVerify(digits.join(''))}
-        disabled={loading || digits.join('').length < 6}
-        className="w-full h-10 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed btn-press"
-      >
-        {loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Verifying...
-          </span>
-        ) : (
-          'Verify Code'
+        {attemptsLeft !== undefined && attemptsLeft < 3 && (
+          <p className="text-xs text-warning text-center">
+            {attemptsLeft} verification attempts remaining.
+          </p>
         )}
-      </button>
+
+        {error && <p className="text-sm text-destructive text-center">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={loading || otp.length !== 6}
+          className="w-full h-10 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50 btn-press"
+        >
+          {loading ? 'Verifying...' : 'Verify Email'}
+        </button>
+      </form>
+
+      <div className="flex items-center justify-between text-xs mt-4">
+        <button
+          onClick={onBack}
+          className="text-muted-foreground hover:text-foreground underline"
+        >
+          Edit email
+        </button>
+        <button
+          onClick={handleResend}
+          disabled={resendLoading || resendCooldown > 0}
+          className="text-primary hover:underline disabled:text-muted-foreground disabled:no-underline"
+        >
+          {resendCooldown > 0
+            ? `Resend code in ${resendCooldown}s`
+            : 'Resend code'}
+        </button>
+      </div>
     </div>
   );
 }

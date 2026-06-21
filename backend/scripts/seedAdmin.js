@@ -13,28 +13,29 @@ const seedAdmin = async () => {
 
     const existingAdmin = await User.findOne({ role: 'admin' });
     if (existingAdmin) {
-      console.log('Admin already exists:', existingAdmin.phone);
+      console.log('Admin already exists:', existingAdmin.email);
       process.exit(0);
     }
 
-    const adminPhone = process.env.ADMIN_PHONE;
+    const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
 
-    if (!adminPhone || !adminPassword) {
-      console.error('Please set ADMIN_PHONE and ADMIN_PASSWORD in your .env file');
+    if (!adminEmail || !adminPassword) {
+      console.error('Please set ADMIN_EMAIL and ADMIN_PASSWORD in your .env file');
       process.exit(1);
     }
 
     const admin = await User.create({
-      phone: adminPhone,
+      email: adminEmail.toLowerCase(),
       password: adminPassword,
+      whatsappNumber: '+201064866584', // Admin contact whatsapp
       name: 'Admin',
       role: 'admin',
-      isPhoneVerified: true,
+      isEmailVerified: true,
     });
 
     console.log('Admin created successfully!');
-    console.log('Phone:', admin.phone);
+    console.log('Email:', admin.email);
     console.log('Password: [HIDDEN]');
     process.exit(0);
   } catch (error) {

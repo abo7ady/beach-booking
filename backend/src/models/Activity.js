@@ -6,6 +6,8 @@ const activitySchema = new mongoose.Schema(
     description: { type: String, required: true },
     images: [{ type: String }], // Cloudinary secure URLs
     durationMinutes: { type: Number, default: 60 },
+    price: { type: Number, required: true },
+    maxPeople: { type: Number, required: true },
     tags: [{ type: String }], // e.g. ['ATV', 'Parachute']
 
     // ── Popularity system

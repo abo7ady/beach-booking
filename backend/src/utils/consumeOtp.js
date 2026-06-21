@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import Otp from '../models/Otp.js';
 
-export const consumeOtp = async (phone, otp, purpose) => {
-  const record = await Otp.findOne({ phone, purpose });
+export const consumeOtp = async (email, otp, purpose) => {
+  const record = await Otp.findOne({ email, purpose });
   if (!record) {
     const err = new Error('Code expired. Please request a new one.');
     err.status = 400;

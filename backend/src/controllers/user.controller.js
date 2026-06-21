@@ -6,6 +6,7 @@ export const getAllUsers = async (req, res, next) => {
     users = users.map((u) => {
       const obj = u.toObject();
       obj.isActive = obj.isActive !== false; // default to true for old records
+      obj.isEmailVerified = obj.isEmailVerified === true; // default to false if undefined, ensure boolean
       return obj;
     });
     res.json({ users });

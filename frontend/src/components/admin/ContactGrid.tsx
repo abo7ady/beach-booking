@@ -12,7 +12,7 @@ export default function ContactGrid({ user }: ContactGridProps) {
   const links = generateContactLinks(user);
 
   const contacts = [
-    { key: 'whatsapp', url: links.whatsapp, icon: MessageCircle, bg: 'bg-[#25D366]', text: 'text-white', label: user.phone },
+    { key: 'whatsapp', url: links.whatsapp, icon: MessageCircle, bg: 'bg-[#25D366]', text: 'text-white', label: user.whatsappNumber },
     { key: 'telegram', url: links.telegram, icon: Send, bg: 'bg-sky-500', text: 'text-white', label: user.telegram },
     { key: 'instagram', url: links.instagram, icon: Camera, bg: 'bg-gradient-to-br from-purple-500 to-rose-500', text: 'text-white', label: user.instagram },
     { key: 'messenger', url: links.messenger, icon: MessageSquare, bg: 'bg-blue-600', text: 'text-white', label: user.messenger },

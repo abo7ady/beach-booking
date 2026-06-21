@@ -1,14 +1,16 @@
 export interface User {
   _id: string;
-  phone: string;
+  email: string;
+  whatsappNumber: string;
   name: string;
   role: 'user' | 'admin';
-  isPhoneVerified: boolean;
+  isEmailVerified: boolean;
   telegram: string;
   instagram: string;
   snapchat: string;
   messenger: string;
   preferredContact?: string;
+  profilePicture?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,6 +21,8 @@ export interface Activity {
   description: string;
   images: string[];
   durationMinutes: number;
+  price: number;
+  maxPeople: number;
   tags: string[];
   popularityScore: number;
   isTrending: boolean;

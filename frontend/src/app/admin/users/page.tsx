@@ -6,14 +6,25 @@ import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ContactGrid from '@/components/admin/ContactGrid';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
+const getInitials = (name: string) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+};
 
 interface UserData {
   _id: string;
   name: string;
-  phone: string;
+  email: string;
+  whatsappNumber: string;
   createdAt: string;
   isActive: boolean;
   role: string;
+  isEmailVerified: boolean;
+  profilePicture?: string;
   telegram?: string;
   instagram?: string;
   snapchat?: string;
@@ -83,7 +94,7 @@ export default function AdminUsersPage() {
             <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground font-semibold border-b border-border">
               <tr>
                 <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Phone</th>
+                <th className="px-6 py-4">Email</th>
                 <th className="px-6 py-4">Join Date</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -91,14 +102,33 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {users.map((u) => {
-                const isSelf = currentUser?._id === u._id || u.phone === '+201000000000';
+                const isSelf = currentUser?._id === u._id || u.email === 'admin@beachbooking.com';
                 
                 return (
                   <tr key={u._id} className="hover:bg-accent/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-foreground">
-                      {u.name || <span className="text-muted-foreground italic">No Name</span>}
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={u.profilePicture} alt={u.name} />
+                          <AvatarFallback className="text-[10px]">{getInitials(u.name || '')}</AvatarFallback>
+                        </Avatar>
+                        <span>{u.name || <span className="text-muted-foreground italic">No Name</span>}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">{u.phone}</td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <span>{u.email}</span>
+                        {u.isEmailVerified ? (
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+                            Pending OTP
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-muted-foreground">{formatDate(u.createdAt)}</td>
                     <td className="px-6 py-4">
                       {u.isActive ? (
