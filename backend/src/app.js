@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 5000;
 // CORS must come before helmet so preflight responses get proper headers
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://topguide-frontend.vercel.app',
+  'https://top-guide.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
